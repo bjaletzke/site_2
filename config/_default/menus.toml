@@ -11,11 +11,12 @@
 [[main]]
   name = "Blog"
   url = "#blog"
-  weight = 20
+  weight = 40
 
 [[main]]
   name = "Data Analytics Projects"
   url = "#data_projects"
+  weight = 20
 
 [[main]]
   name = "Other Projects"

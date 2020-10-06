@@ -9,24 +9,18 @@
   weight = 10
 
 [[main]]
-  name = "Posts"
-  url = "#posts"
+  name = "Blog"
+  url = "#blog"
   weight = 20
 
 [[main]]
-<<<<<<< HEAD
   name = "Data Analytics Projects"
   url = "#data_projects"
-=======
-  name = "Projects"
-  url = "#projects"
->>>>>>> parent of 082a66d... contact info
-  weight = 30
 
 [[main]]
-  name = "Publications"
-  url = "#featured"
-  weight = 40
+  name = "Other Projects"
+  url = "#projects"
+  weight = 30
 
 [[main]]
   name = "Contact"

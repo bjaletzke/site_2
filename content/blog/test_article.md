@@ -4,12 +4,12 @@
 title: "Test_article"
 subtitle: ""
 summary: ""
-authors: []
+authors: [admin]
 tags: []
 categories: []
 date: 2020-10-06T18:43:19+01:00
 lastmod: 2020-10-06T18:43:19+01:00
-featured: false
+featured: true
 draft: false
 
 # Featured image

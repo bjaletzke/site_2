@@ -10,17 +10,17 @@
 
 [[main]]
   name = "Blog"
-  url = "#blog"
+  url = "blog/"
   weight = 40
 
 [[main]]
   name = "Data Analytics Projects"
-  url = "#data_projects"
+  url = "data_analytics/"
   weight = 20
 
 [[main]]
   name = "Other Projects"
-  url = "#projects"
+  url = "other_proj/"
   weight = 30
 
 [[main]]

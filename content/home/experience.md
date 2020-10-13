@@ -47,4 +47,29 @@ date_format = "Jan 2006"
   * Pitch and Database creation
   """
 
+[[experience]]
+  title = "Summer Analyst"
+  company = "Macquarie Capital"
+  company_url = ""
+  location = "Frankfurt, DE"
+  date_start = "2018-07-30"
+  date_end = "2018-09-20"
+  description = """
+  M&A & Restructuring
+  * Sector specific analyses in industrials and energy
+  * Pitch and Database creation
+  """
+  
+  [[experience]]
+  title = "Private Equity Intern"
+  company = "Castik Capital Partners"
+  company_url = ""
+  location = "Munich, DE"
+  date_start = "2018-04-01"
+  date_end = "2018-04-30"
+  description = """
+  Private Equity
+  * Market research in diverse sectors
+  * LBO and financial modeling
+  """
 +++

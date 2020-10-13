@@ -1,7 +1,7 @@
 ---
 title: Test Project 01
-subtitle: AAAAAA
-summary: BBBBBB
+subtitle: Title Inside Post.
+summary: Ok, so this is the summary that can be seen when I display the page on the D/A Menu item.
 authors:
 - admin
 tags: []

@@ -71,4 +71,4 @@ user_groups:
 - Visitors
 ---
 
-Lorem Ipsum.
+Student at London Business School, Photographer and Rugby Enthusiast.

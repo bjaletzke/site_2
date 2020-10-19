@@ -1,0 +1,510 @@
+---
+title: "Trading Strategy: Moving Averages in Metal Commodities Markets"
+subtitle: "CA01 - Investment Fundamentals, Group Project"
+author: |
+        | Group 8
+        | Benedikt Jaletzke, Stanislav Markarov, Mark Negodyuk,
+        | Kateryna Tarasova, Olivia Zhang, Tom Tian
+date: "12/10/2020"
+abstract: "Our group applied two technical indicators to S&P Metal Commodity Indices: A triangular moving average (TMA) and a double exponential moving average (DEMA), with the idea being that the metal markets overall move steadily in an upward trend and with relatively low volatility, thus making them suitable candidates for the application of a slow moving indicator, the TMA. As a sort of control group, we then look at the performance of the DEMA, an indicator that is significantly more fast moving and provides different returns. We find that both these indicators significantly underperform the market compared to, for example, a simple buy-and-hold strategy over the same time period, starting in 1990."
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+
+```{r, include = FALSE}
+library(lubridate)
+library(tidyverse)
+library(GGally)
+library(skimr)
+library(lubridate)
+library(fpp2) 
+library(zoo)
+library(PerformanceAnalytics)
+library(reshape2)
+library(stats)
+library(quantmod)
+library(TTR)
+library(scales)
+```
+
+# Introduction
+
+The idea for this group project was to come up with a strategy that either exploited an arbitrage opportunity in the market, or represents another form of hedge fund strategy. Our group decided to develop a technical strategy basing on the moving averages of metal commodities returns. We start by constructing a Markowitz efficient portfolio and an equal weighted portfolio to trade on and use the Triangular Moving Average and Double Exponential Moving Average returns of the portfolios to find buy/sell signals. As to the choice of moving averages as our technical indicators: There has, over the last decades, been a considerable exploration of the applciation of technical/chart signals to trading in attempts to make sense of market movements that happen for different asset classes. These developments have ranged from simple trendlines and averages to bbollinger bands, fibonnaci patterns yet more complex indicators. While there are differing opinions in markets about the applicability of technical signals in general (see e.g. Stankovic, Markovic & Stojanovic, 2015), studies have found that generally, there is a problem with complex signals: While these can produce returns for some time, their downfall lies in their applciation, which is to say that once profitable signals are found to work reliable, chances are that these signals will be used to such an extent that they are no longer reliably profitable (Glabadanidis, 2015; Vukovic, Grubisic & Jovanovic 2010). A moving average is simple enough not to run this risk, which is why we decided to investigate their potential applicability within our chosen market.
+
+# Method 
+## Data
+  
+```{r}
+# Data Import and Cleaning
+import_data <-  function(source){
+  x <- read.csv(source, skip = 2)
+  x %>%
+  mutate(date = as.Date(x$Date, format = "%m/%d/%Y")) %>% 
+  filter(date > as.Date("1989-12-31")) %>% 
+  subset(data = x, select = -c(Date, Open, High, Low)) %>% 
+  rename(close = Close, 
+         ticker = Ticker) %>% 
+  mutate(index = close/close[1])
+}
+
+precious_init <- import_data("data/sp_precmet.csv")
+industrial_init <- import_data("data/sp_indmet.csv")
+
+combined_indices <- full_join(industrial_init, precious_init, by = "date") %>% 
+  rename(precious_metals = index.y,
+         pm_close = close.y,
+         ind_close = close.x,
+         industrial_metals = index.x) %>% 
+  subset(select = -c(ticker.x, ticker.y)) %>%
+  head(-2)
+```
+
+```{r, fig.width = 8}
+combined_indices_pivot <-  combined_indices %>% 
+  subset(select = -c(ind_close, pm_close)) %>% 
+  gather(index, values, precious_metals:industrial_metals)
+  
+ggplot(combined_indices_pivot) + 
+  geom_line(aes(x=date, y=values, color = index)) + 
+  labs(title = "Plot of S&P GSCI Precious Metals and Industrial Metals Indices",
+    y = "Price, (1 = 1/1/1990)",
+    x= "Date",
+    caption = "GFD, S&P Indices as of 13 October 2020") +
+  scale_x_date(date_breaks = "12 months", date_labels =  "%Y") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_color_discrete(
+    name = "Series", 
+    labels= c("Industrial Metals", "Precious Metals"))
+```
+
+## Portfolio Allocation
+
+In order to ideally work within the metals markets, the portfolio will consist completely of two already existing indices that are calculated on a daily basis, the [S&P GSCI Precious Metals Index](https://www.spglobal.com/spdji/en/indices/commodities/sp-gsci-precious-metals/#overview) and the [S&P GSCI Industrial Metals Index](https://www.spglobal.com/spdji/en/indices/commodities/sp-gsci-industrial-metals/#overview). By using these two indices as our baseline instead of attempting to construct our own, we can create a two-security portfolio with different weights to find the best possible results. As for the choice of allocations, we tried different combination weights of the indices. 
+
+To construct the efficient portfolio, we had to calculate the return and variance of the two separate indices.
+```{r}
+# Return - Variance Calculation for the Separate Metals Indices
+industrials_price <- 
+  na.approx(zoo(combined_indices$ind_close, combined_indices$date))
+
+precious_price <- 
+  na.approx(zoo(combined_indices$pm_close, combined_indices$date))
+
+rets_industry <- 
+  Return.calculate(xts(industrials_price),  method = "discrete")
+names(rets_industry) <- "return_ind"
+
+rets_precious <- 
+  Return.calculate(xts(precious_price),  method = "discrete")
+names(rets_precious) <- "return_prec"
+
+combined_indices <- cbind(combined_indices, rets_industry, rets_precious)
+
+# Calculating Statistics for the Industrials Index
+stats_industrials <- combined_indices %>% 
+  summarise(mean_ind = mean(return_ind[-1]),
+            sd_ind = sd(return_ind[-1]))
+
+# Calculating Statistics for the Precious Metals Index
+stats_precious <- combined_indices %>% 
+  summarise(mean_prec = mean(return_prec[-1]),
+            sd_prec = sd(return_prec[-1]))
+
+```
+
+### Efficient Portfolio
+We constructed an efficient portfolio according to Markowitz portfolio theory (Mangram, 2013).
+```{r}
+# Efficient Portfolio
+# Statistics for the Portfolio: Mean, StDev, Correlation
+calc_efficient <- combined_indices %>% 
+  summarise(mean_ind = mean(return_ind[-1]), mean_prec = mean(return_prec[-1]),
+            sd_ind = sd(return_ind[-1]), sd_prec = sd(return_prec[-1]),
+            corr_ind = cor(return_ind[-1],return_prec[-1]))
+
+# Function to calculate the Weighting of Industrial Metals in the Final Portfolio
+sh_r_max <- function(x){
+  (x*calc_efficient$mean_ind+(1-x)*calc_efficient$mean_prec)/
+    sqrt(x^2*calc_efficient$sd_ind^2+(1-x)^2*calc_efficient$sd_prec^2+2*x*(1-x)
+    *calc_efficient$sd_ind*calc_efficient$sd_prec*calc_efficient$corr_ind)
+}
+
+# Calculating optimal weights for industrial index
+efficient_weight_opti <- 
+  optimize(f = sh_r_max, lower = -1,upper = 1, maximum = TRUE)
+
+# assigning weights to the two indices
+weight_industrial <- efficient_weight_opti$objective
+weight_precious <- 1-weight_industrial
+
+# creating (theoretically) efficient combination
+efficient_portfolio <- combined_indices %>% 
+  mutate(
+    efficient = 
+      weight_industrial * industrial_metals + 
+      weight_precious * precious_metals) %>% 
+  subset(select = c(date, efficient))
+```
+
+```{r, echo = FALSE}
+print(paste0("This portfolio gives a weight of ", percent(weight_precious, accuracy = 0.001), " to the Precious Metals Index, and a weighting of ", percent(weight_precious, accuracy = 0.001), " to the Industrial Metals Index"))
+```
+
+
+### 50/50 Portfolio
+```{r}
+# Weights
+eq_w_pm <- 0.5
+eq_w_ind <- 1-eq_w_pm
+
+# calculate index
+eq_w_ind <- combined_indices %>% 
+  mutate(eq_weight = eq_w_pm * precious_metals + eq_w_ind * industrial_metals) %>% 
+  subset(select = c(date, eq_weight))
+```
+
+```{r}
+# Joining the Portfolios
+# Add Equal Weights to Individual Indices
+indices_equal <- right_join(eq_w_ind, combined_indices, by = "date") %>% 
+ subset(select = -c(ind_close, pm_close )) %>% 
+  subset(select = -c(return_ind, return_prec))
+
+# Add Efficient Portfolio
+four_portfolios_main <- left_join(indices_equal, efficient_portfolio, by = "date")
+```
+
+```{r, fig.width = 11, echo=FALSE}
+# combining the four portfolios into one
+four_portfolios_consolidated <- 
+  left_join(indices_equal, efficient_portfolio, by = "date") %>% 
+  gather(index, values, eq_weight:efficient)
+
+# Combination Graph
+ggplot() + 
+  geom_line(data = four_portfolios_consolidated, 
+            aes(x=date, y=values, color = index), size = 0.4) + 
+  labs(title = "Price Development of the Different Combinations of Metals Indices",
+       caption = "Source: Finaeon, S&P as of October 2020",
+       x = "Date",
+       y="Index (1 = 1/1/1990)") +
+  scale_color_brewer(
+    palette = "Dark2", 
+    type = "qual", 
+    name = "Series", 
+    labels = c("Efficient Portfolio", "Equal Weights", 
+               "Industrial Metals", "Precious Metals")) +
+  scale_x_date(date_breaks = "12 months", date_labels =  "%Y") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1))
+```
+
+The graph shows clearly that the most efficient portfolio is one in which the heaviest weighting is placed on the precious metals component of the portfolio, which is not surprising given it's outperformance of the industrial metals class, especially over the last ten years. For a further analysis, this raises the obvious question of whether a more efficient portfolio could be constructed using different indices/components that would diversify the returns away from this sector.
+
+# Economic Rationale
+## Market Choice
+We have decided to use the precious metals index and the industrial metals index. Precious metals are commonly referred to as safe havens, which means that they are counter-cyclical. Their price tends to move in the opposite direction of the general economic conditions. This makes an index of precious metals a very robust investment to hedge against an economic downturn. Academic literature (Sakemoto, 2018) supports this hypothesis with gold and silver as well as other precious metals shown to provide diversification benefits when added to the portfolio. Industrial metals have also been shown to provide diversification benefits and in some cases act as better hedges than precious metals. However, more recently, the hedging properties have been weaker for both precious and industrial metals.
+That being said, gold is an asset that is traded globally less for its value as a metal but because of its use as a hedging and speculative asset.
+
+```{r, fig.width = 5, warnings = FALSE}
+combined_indices %>%
+  subset(select = c(precious_metals, industrial_metals)) %>%
+  ggpairs(combined_indices)
+```
+As the above correlation graph shows, and intuition would confirm, there is an extreme correlation between the different classes of metals. This is despite the fact that gold, which makes up a large part of the precious metals index, is traded less for its value as a metal from an utilitarian perspective and more because of it's economic value as a crisis/hedging asset. 
+
+## Technical Indicator
+### Triangular Moving Average
+A moving average is a stock indicator used to smooth out the price data by continuously updating the average price. It is calculated by analysing the security’s average price over a predetermined time period. Hence, as the security’s price changes, the average shifts up and down accordingly. The rationale behind using the moving average is to mitigate the impact of random, short-term fluctuations in the price of the security. In this analysis we will concentrate of the exponential and triangular moving averages. An even-numbered moving average is unbalanced, and for our purposes, the unbalancing will be in favor of more recent observations. For example, to calculate a 5-MA, the equation is as follows:
+$$\hat{y}_{n} = \frac{y_{t-2} + y_{t-1} + y_{t} + y_{t+1} + y_{t+2}}{5}$$ 
+
+The triangular moving average gives majority of the weight on the central portion of the price series, which results in a double-smoothed simple moving average (Ferreira, Silva, 2018). Compared to a simple moving average, a triangular moving average will not react that fast in volatile market conditions. To make the moving average symmetric (and therefore more accurate), we then take a 2-MA of the 4-MA to create a 2 x 4-MA. For the 2-MA step, we average the current and previous moving averages.$$\hat{y}_{n} = \frac{1}{8}y_{t-2} + \frac{1}{4}y_{t-1} + \frac{1}{4}y_{t} + \frac{1}{4}y_{t+1} + \frac{1}{8}y_{t+2} $$
+The benefit of this technique is that if the security’s price fluctuates back and forth, the triangular moving average will not be as reactive and hence indicate that the overall trend has not shifted. An exponential moving average is a more appropriate choice for a highly responsive moving range.
+
+Naved & Srivastava (2015) found that moving averages strategies generate more profit with less drawdown and outperform buy-and-hold strategies. This result, combined with the relative simplicity dan accompanying flexibility of moving averages makes them an attractive tool for analysis and trading for our use case.
+
+The main challenge lies in finding the appropriate time periods for the TMA. As it is an average of averages, we have to consider which of these will give us the best return. 
+The best TMA will be one that fits the trend well enough, but can still react to changes in the underlying assets quickly enough to be useful.
+To compute a basic TMA, we can use the ma() function and take a look at the output, in this case with a 60 day compound.
+
+```{r, warnings = FALSE, echo = FALSE}
+portfolios_tma <- four_portfolios_consolidated %>% 
+  group_by(index) %>% 
+  mutate(tma100 = ma(values, order = 100, centre = TRUE))
+
+eq_efficient <- portfolios_tma %>% 
+  filter(index %in% c("eq_weight", "efficient"))
+
+eq_efficient_clean <-  na.omit(lag(eq_efficient))
+
+pfs_tma_dma <- eq_efficient_clean %>% 
+  mutate(dema = DEMA(values, 10, wilder = TRUE))
+```
+
+#### Triangular Moving Average Plot
+```{r, fig.width = 10}
+ggplot(pfs_tma_dma) +
+  geom_line(aes(x = date, y=values, group = index), 
+            alpha = 0.8, fill = "black", size = 0.2) +
+  geom_line(aes(x = date, y=tma100, color = index)) + 
+  scale_color_brewer(palette="Dark2", 
+    name = "Series", 
+    labels = c("Efficient Portfolio", "Equal Weights")) +
+  scale_x_date(date_breaks = "12 months", date_labels =  "%Y") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) + 
+  labs(
+    title = "Triangular Moving Average",
+    subtitle = "Applied to the Efficient and Eq. Weights Portfolios",
+    x = "Date", 
+    y = "Index (100 = 1/1/1990)"
+  )
+
+```
+
+### Double Exponential Moving Average
+
+The double exponential moving average (DEMA), introduced by Partick Mulloy in 1994, is another popular smoothing technique from the moving averages family of indicators. It’s an improvement on simple exponential smoothing by completing exponential filtering process twice. An experiment on the Jakarta Stock Exchange has shown a promising result that the double exponential moving average has a high degree of accuracy and robustness. The model derives small mean square error and mean absolute percentage error values (Hansun & Subanar, 2016). 
+Relevance for the application to our strategy comes from the fact that the DEMA is somewhat of an opposite to the TMA. While the latter is a particularly smooth and trend following index, the DEMA reacts very quickly to any changes in price. 
+In this paper, we aimed to use both triangular moving average and double exponential moving average in examining the accuracy in predicting signals within metal futures.
+
+$$ DEMA = 2 x EMA - EMA(EMA)$$, where $$ EMA_{Today} = (Value_{Today} * (\frac{Smoothing}{1 + Days}) + EMA_{Yesterday} * (1 - \frac{Smoothing}{1 + Days}) $$ and the smoothing factor is often given as *2*.
+
+#### DEMA - Plot
+```{r, fig.width = 10}
+ggplot(pfs_tma_dma) +
+  geom_line(aes(x = date, y=values, group = index), 
+            alpha = 0.8, fill = "black", size = 0.2) +
+  geom_line(aes(x = date, y=dema, color = index)) + 
+  scale_color_brewer(palette="Dark2", 
+    name = "Series", 
+    labels = c("Efficient Portfolio", "Equal Weights")) +
+  scale_x_date(date_breaks = "12 months", date_labels =  "%Y") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) + 
+  labs(
+    title = "Double Exponential Moving Average",
+    subtitle = "Applied to the Efficient and Eq. Weights Portfolios",
+    x = "Date", 
+    y = "Index (100 = 1/1/1990)"
+  )
+```
+
+
+### Calculating Portfolio Statistics
+```{r}
+equal_price <- 
+  na.approx(zoo(four_portfolios_main$eq_weight, four_portfolios_main$date))
+rets_eq <- 
+  Return.calculate(xts(equal_price),  method = "discrete")
+names(rets_eq) <- "return_eq"
+
+efficient_price <- 
+  na.approx(zoo(four_portfolios_main$efficient, four_portfolios_main$date))
+rets_eff <- 
+  Return.calculate(xts(efficient_price),  method = "discrete")
+names(rets_eff) <- "return_eff"
+
+# Statistics for the Equal Weight Portfolio
+four_portfolios_main <- cbind(four_portfolios_main, rets_eq)
+stats_eq <- four_portfolios_main %>% 
+  summarise(mean_eq = mean(return_eq[-1]),
+            sd_eq = sd(return_eq[-1]))
+
+# Statistics for the Efficient Portfolio
+four_portfolios_main <- cbind(four_portfolios_main, rets_eff)
+
+stats_eff <- four_portfolios_main %>% 
+  summarise(mean_eff = mean(return_eff[-1]),
+            sd_eff = sd(return_eff[-1]))
+```
+
+In order to see the performance of any portfolio, we have to implement buy and sell signals. In our case, as described earlier, the idea would be to buy when the TMA is passed upwards, and to sell & short when the line crosses below. 
+To do this, we can use the code suggested [on the QuantInst Blog](https://blog.quantinsti.com/an-example-of-a-trading-strategy-coded-in-r/)
+
+### Buy Signals
+```{r}
+# (Re-)calculating DEMA
+efficient_tma_dema <- eq_efficient_clean %>% 
+  filter(index %in% "efficient") %>% 
+  mutate(dema = DEMA(values, 10, wilder = TRUE))
+
+# Buy Signals for DEMA
+efficient_tma_dema$buy_signal_dema <- 
+  ifelse(efficient_tma_dema$dema < efficient_tma_dema$values, 1, 0)
+
+# Buy Signal for TMA
+efficient_tma_dema$buy_signal_tma <- 
+  ifelse(efficient_tma_dema$tma100 < efficient_tma_dema$values, 1, 0)
+```
+
+## Trading Signals
+```{r, warnings = FALSE}
+# DMA Trading
+above_ma <-  
+  which(efficient_tma_dema$buy_signal_dema==1)
+trades_time <- 
+  split(above_ma, cumsum(c(1, diff(above_ma) >= 4)))
+trades_time <- 
+  trades_time[sapply(trades_time, length) >= 4]
+trades <- 
+  lapply(trades_time, function(x){
+    l <- c(x[4],min(x[length(x)]+4, length(efficient_tma_dema$values)))})
+returns_dema <- 
+  sapply(trades, function(x){
+    (efficient_tma_dema$values[x[2]]/efficient_tma_dema$values[x[1]])-1})
+ttl_ret_dema <- 
+  sum(returns_dema) - 1 
+
+# TMA Trading
+above_ma <-  
+  which(efficient_tma_dema$buy_signal_tma==1)
+trades_time <- 
+  split(above_ma, cumsum(c(1, diff(above_ma) >= 4)))
+trades_time <- 
+  trades_time[sapply(trades_time, length) >= 4]
+trades <- 
+  lapply(trades_time, function(x){
+    l <- c(x[4],min(x[length(x)]+4, length(efficient_tma_dema$values)))})
+returns_tma <- 
+  sapply(trades, function(x){
+    (efficient_tma_dema$values[x[2]]/efficient_tma_dema$values[x[1]])-1})
+ttl_ret_tma <- 
+  sum(returns_tma) - 1
+```
+
+# Results
+### Sharpe Ratios
+```{r}
+# Assumed Risk Free Rate, based on current 10-Year US Treasuries 
+risk_free <- 0.0076
+
+# Sharpe Ratio Function
+sharpe <- function(dataset, mean, sd){
+  (dataset$mean - (risk_free / 365)) / dataset$sd
+}
+
+# Sharpe Ratios for the Individual Indices
+sharpe_ind <- sharpe(stats_industrials, mean_ind, sd_ind)
+sharpe_prec <- sharpe(stats_precious, mean = mean_prec, sd = sd_prec)
+sharpe_efficient <- sharpe(stats_eff, mean_eff, sd_eff)
+sharpe_equal <-sharpe(stats_eq, mean_eq, sd_eq)
+
+print(paste0("Sharpe Ratio for Industrial Metals Index: ", 
+             round(sharpe_ind, digits = 6)))
+print(paste0("Sharpe Ratio for Precious Metals Index: ", 
+             round(sharpe_prec, digits = 6)))
+print(paste0("Sharpe Ratio for Efficient Portfolio: ", 
+             round(sharpe_efficient, digits = 6)))
+print(paste0("Sharpe Ratio for Equal Weights Portfolio: ", 
+             round(sharpe_equal, digits = 6)))
+```
+### Expected Return/Volatility
+```{r}
+# Plot
+er_sd_view <- cbind(stats_industrials, stats_precious, stats_eq, stats_eff) %>% 
+  gather(mean_return, values_er, c(mean_ind, mean_prec, mean_eff, mean_eq)) %>% 
+  gather(volatility, values_vola, c(sd_ind, sd_prec, sd_eff, sd_eq)) %>% 
+  rownames_to_column("return") %>% 
+  slice(1, 6, 11, 16) %>% 
+  subset(select = -return) %>% 
+  mutate(values_vola = values_vola) %>%
+  mutate(values_er = values_er)
+
+ggplot(er_sd_view) + 
+  geom_point(aes(x = values_vola, y = values_er, color = mean_return)) + 
+  scale_x_continuous(limits = c(0.005, 0.017)) + 
+  scale_y_continuous(limits = c(0.00015, 0.0003)) +
+  scale_color_brewer(palette = "Dark2", 
+    name = "Portfolio", 
+    labels = c("Efficient", "50/50", "Industrial Metals", "Precious Metals")) + 
+  labs(
+    title = "E(Return)/Volatility Plot for the Individual portfolios", 
+    x = "Volatility",
+    y = "Expected Return"
+  ) + 
+  theme_minimal()
+```
+As the chart shows, the volatility and return for individual portfolios follow the common trend. While individual portfolio for industrial metals and precious metals have relatively low risk-adjusted returns, the efficient and 50/50 portfolios have better efficiency frontiers. The efficient portfolio and 50/50 portfolio are really close in both volatility and return, indicated that the efficient portfolio has a similar make-up with 50/50.
+
+```{r, warnings = FALSE, echo = FALSE}
+# Daily Returns TMA vs DEMA
+DEMA_col <- 
+  data.frame(keyName=names(returns_dema), value=returns_dema, row.names=NULL) %>% 
+  rename(dema_returns = value)
+
+TMA_col <- 
+  data.frame(keyName=names(returns_tma), value=returns_tma, row.names=NULL) %>% 
+  rename(tma_returns = value)
+
+dailyret <- full_join(TMA_col, DEMA_col, by = "keyName") %>% 
+  gather(key = indicator, value = return, tma_returns:dema_returns) %>% 
+  subset(select = -keyName)
+
+```
+
+### Total Returns
+The Triangular Moving Average as a Trading Indicator would give us a total return on 1$ of: `r round(ttl_ret_tma, 4)`
+
+The Double Exponential Moving Average as a Trading Indicator would give us a total return on 1$ of: `r round(ttl_ret_dema, 4)`
+
+### Density Plot of Daily Returns
+```{r, echo = FALSE, warning=FALSE}
+ggplot() + 
+  geom_density(data = dailyret, aes(x = return, fill = indicator), alpha = 0.6) + 
+  scale_fill_brewer(
+    type = "div", 
+    palette = "Spectral", 
+    name = "Signal", 
+    labels = c("DEMA", "TMA 100")) + 
+  theme_minimal()
+```
+As the chart shows, the DEMA has a lower density toward the mean value, while also have a fat tail in the positive end, indicating that the method is successful in achieving positive returns for our portfolio, and is also useful in eliminating intra-day lost. Compared to TMA 100, the DEMA also has a higher mean value, indicating a higher average return. The chart shows that DEMA is a Pareto improvement to the original TMA 100.
+
+
+
+We can amplify our returns by using a Kelly Criterion Optimized amount of leverage. For a given security, this investment is given by $f^{*} = \frac{\mu - r_{f}}{\sigma^{2}}$
+```{r}
+kelly_crit_eff <- (stats_eff$mean_eff - (risk_free / 365)) / (stats_eff$sd_eff)^2
+
+print(paste0("Kelly Criterion Value for the Efficient Portfolio: ", kelly_crit_eff))
+```
+
+Applying this to the theoretical daily returns from the previous calculations on return gives us:
+```{r}
+tot_ret <- 0
+
+dailyret_dema <-  dailyret %>% 
+  filter(indicator %in% "dema_returns")
+
+kelly <- for (i in 1:na.omit(length(dailyret_dema$return))){
+    tot_ret <- dailyret_dema$return[i] * kelly_crit_eff
+}
+```
+
+Total Return after applying the Kelly Criterion and leveraging returns: `r tot_ret`
+
+### Conclusion
+In conclusion, we can see that the strategy works, but that it is an inefficient way of moving about the metal commodities markets. A buy/hold strategy in the same time period would have provided higher returns, (e.g. $r_{efficient} = 4.71 - 1$, where 4.71 is the final index value). That being said, the implementation of the strategy was successful, and its components can be tweaked to produce outputs that are, if not higher returning ones, at least ones which provide returns at a relatively low volatility.
+
+# Future Explorations
+- Long/Short Implementation of the Strategy. Currently, we have focussed only on a very simplistic long-only returns strategy, but the meagre returns we have would be improved by also going short on sell signals.
+- More Efficient Leverage:
+  - We implemented a robust but basic measure of leverage in the portfolio, using the Kelly criterion, which results in leveraged returns. More efficient/realistic leverage would give us useable results for these two strategies.
+- Derivatives:
+  - Commodities markets are home to a great deal of derivatives including futures. More advanced and interesting strategies could explore trading differeently timed futures or options on the metals for returns.
+
+# Appendix
+## Bibliography
+- Ferreira, Fernando F., A. Christian Silva, and Ju-Yi Yen. "Detailed study of a moving average trading rule." Quantitative Finance 18.9 (2018): 1599-1617.
+- Glabadanidis, Paskalis. "Market timing with moving averages." International Review of Finance 15.3 (2015): 387-425.
+- Hansun, Seng. "H-WEMA: A New Approach of Double Exponential Smoothing Method." Telkomnika 14.2 (2016).
+- Mangram, Myles E. "A simplified perspective of the Markowitz portfolio theory." Global journal of business research 7.1 (2013): 59-70.
+- Naved, M. and Srivastava, P., 2015. Forecasting of Indian Stock Market Index S&P CNX Nifty 50 Using Artificial Intelligence. International Journal of Science and Research (IJSR), 4(11), pp.2544-2550.
+- Stanković, Jelena, Ivana Marković, and Miloš Stojanović. "Investment strategy optimization using technical analysis and predictive modeling in emerging markets." Procedia Economics and Finance 19 (2015): 51-62.
+- Vuković, Darko, Zoran Grubišić, and Ana Jovanović. "THE USE OF MOVING AVERAGES IN TECHNICAL ANALYSIS OF SECURITIES." Megatrend Review 9.1 (2012).

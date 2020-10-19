@@ -2,6 +2,7 @@
 title: "Map of AirBnB Rentals in Hong Kong"
 author: "Ben Jaletzke"
 date: "13/10/2020"
+abstract: "As part of a Group Project, I created a simple leaflet map of Hong Kong AirBnB rentals, using a ShapeFile for the 18 Districts of Hong Kong"
 output: html_document
 ---
 

@@ -1,0 +1,77 @@
+---
+title: "Map of AirBnB Rentals in Hong Kong"
+author: "Ben Jaletzke"
+date: "13/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(vroom)
+library(tidyverse)
+library(skimr)
+library(leaflet)
+library(sp)
+library(rgdal)
+library(mapview)
+```
+
+# Data Import
+```{r}
+# Importing the HK Listings data from AirBnB
+hk_listings <- vroom("http://data.insideairbnb.com/china/hk/hong-kong/2020-06-15/data/listings.csv.gz")
+
+# Removing unused columns, to make the data more easy to handle for the entire group
+hk_listings_clean <- hk_listings %>% 
+  subset(select = c(listing_url, host_id, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, neighbourhood_cleansed, latitude, longitude, property_type, room_type, is_location_exact, accommodates, bedrooms, bathrooms, beds, price, cleaning_fee, guests_included, extra_people, minimum_nights, maximum_nights, review_scores_rating, number_of_reviews, is_business_travel_ready, instant_bookable, neighbourhood)) 
+ # filter(!is.na(neighbourhood))
+
+# Converting price from character to number value for filtering in the map
+hk_listings_clean$price <- parse_number(hk_listings_clean$price)
+```
+
+## ShapeFile
+```{r}
+# Importing ShapeFile for Hong Kong, from https://opendata.esrichina.hk/datasets/eea8ff2f12b145f7b33c4eef4f045513_0
+hk_dist <- readOGR("hk_dist_shp/HKDistrict18.shp")
+```
+
+# Map
+```{r}
+# (My) R cannot deal with 11,000 + rows of data in leaflet with a shapefile, so I am using a random sample of the dataset to make the illustration
+hk_cut <- hk_listings_clean %>% 
+  sample_n(1000)
+
+hk_cut$price_quant <- cut(hk_cut$price, breaks = c(0, 295, 481, 798, 2000))
+
+# Factoring price according to the percentiles
+factpal <- colorFactor(topo.colors(5), hk_listings_clean$price_quant)
+pal <-  colorBin(palette = 
+    c("#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#b30000"),
+    domain = hk_cut$price, bins = c(0, 200, 500, 800, 15000))
+
+leaflet(hk_dist) %>% 
+  # Adding polygons from hk_dist to be able to group data by district
+  addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+    opacity = 1.0, fillOpacity = 0.5,
+    fillColor = ~pal(hk_cut$price),
+    highlightOptions = highlightOptions(color = "white", weight = 2,
+      bringToFront = TRUE),
+    label = ~hk_cut$neighbourhood) %>% 
+  addProviderTiles(providers$Stamen.TonerLines,
+    options = providerTileOptions(opacity = 0.35)) %>%
+  addCircleMarkers(lng = ~hk_listings_clean$longitude, 
+                   lat = ~hk_listings_clean$latitude, 
+                   radius = 2, 
+                   fillColor = "#ff5a5f",
+                   fillOpacity = 0.7, 
+                   popup = ~hk_listings_clean$listing_url,
+                   label = ~hk_listings_clean$price,
+                   stroke = 0.2, 
+                   clusterOptions = markerClusterOptions()
+                   ) %>% 
+  addLegend("bottomright", pal = pal, values = "", labels = c("0-199", "200-499", "500-799", "800-15000", "1500+"), title = "AirBnB Prices in District", opacity = 1)
+```

@@ -1,10 +1,7 @@
 ---
 title: "Trading Strategy: Moving Averages in Metal Commodities Markets"
 subtitle: "CA01 - Investment Fundamentals, Group Project"
-author: |
-        | Group 8
-        | Benedikt Jaletzke, Stanislav Markarov, Mark Negodyuk,
-        | Kateryna Tarasova, Olivia Zhang, Tom Tian
+author: "Benedikt Jaletzke"
 date: "12/10/2020"
 abstract: "Our group applied two technical indicators to S&P Metal Commodity Indices: A triangular moving average (TMA) and a double exponential moving average (DEMA), with the idea being that the metal markets overall move steadily in an upward trend and with relatively low volatility, thus making them suitable candidates for the application of a slow moving indicator, the TMA. As a sort of control group, we then look at the performance of the DEMA, an indicator that is significantly more fast moving and provides different returns. We find that both these indicators significantly underperform the market compared to, for example, a simple buy-and-hold strategy over the same time period, starting in 1990."
 output: html_document

@@ -33,6 +33,7 @@ library(leaflet)
 library(sp)
 library(rgdal)
 library(mapview)
+library(widgetframe)
 ```
 
 # Data Import
@@ -62,19 +63,19 @@ hk_dist <- readOGR("hk_dist_shp/HKDistrict18.shp")
 hk_cut <- hk_listings_clean %>% 
   sample_n(1000)
 
-# Factoring price according to the percentiles
-factpal <- colorFactor(topo.colors(5), hk_listings_clean$price_quant)
+# Creating a color palette
 pal <-  colorBin(palette = 
     c("#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#b30000"),
     domain = hk_cut$price, bins = c(0, 200, 500, 800, 15000))
 
-leaflet(hk_dist) %>% 
+# Creating the final Leaflet Map
+hk_airbnb <- leaflet(hk_dist) %>% 
   addProviderTiles(providers$CartoDB.Positron) %>% 
   addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
     opacity = 0.1, fillOpacity = 0.1,
     fillColor = ~pal(hk_cut$price),
     highlightOptions = highlightOptions(color = "red", weight = 2,
-      bringToFront = TRUE), label = ~hk_cut$neighbourhood_cleansed) %>% 
+      bringToFront = FALSE), label = ~hk_cut$neighbourhood_cleansed) %>% 
   addCircleMarkers(lng = ~hk_listings_clean$longitude, 
                    lat = ~hk_listings_clean$latitude, 
                    radius = 2, 
@@ -86,4 +87,8 @@ leaflet(hk_dist) %>%
                    clusterOptions = markerClusterOptions()
                    ) %>% 
   addLegend("bottomright", pal = pal, values = "", labels = c("0-199", "200-499", "500-799", "800-15000", "1500+"), title = "AirBnB Prices in District", opacity = 1)
+  # setView(0,0,2) 
+
+# Embedding in Frame to display the Widget within Blogdown
+frameWidget(hk_airbnb, height = '400')
 ```

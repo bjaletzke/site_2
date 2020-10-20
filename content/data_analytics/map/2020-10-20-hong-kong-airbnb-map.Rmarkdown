@@ -9,7 +9,7 @@ tags:
   - r
   - data_analytics
 subtitle: ''
-summary: ''
+summary: 'Visualisation of AirBnB rentals and prices across Hong Kong using the R Leaflet package'
 authors: []
 lastmod: '2020-10-20T13:21:18+01:00'
 featured: no

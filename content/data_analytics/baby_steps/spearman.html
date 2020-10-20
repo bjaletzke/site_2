@@ -1,7 +1,7 @@
 ---
 title: "Just One Graph, How Hard Can It Be"
 author: "Ben Jaletzke"
-date: ""
+date: "2020-10-20"
 summary: "Yes, this 'project' is just a simple graph. The reason I am sharing it is simple: It was the first real encounter with R I've had, and it immediately showed me that I love and hate this language."
 output:
   html_document:
@@ -18,7 +18,7 @@ output:
 <script src="/rmarkdown-libs/anchor-sections/anchor-sections.js"></script>
 
 
-<pre class="r"><code>figure_3 &lt;- read_csv(here::here(&quot;data&quot;, &quot;CDC_Males.csv&quot;))
+<pre class="r"><code>figure_3 &lt;- read_csv(here::here(&quot;content/data_analytics/baby_steps&quot;, &quot;CDC_Males.csv&quot;))
 
 adj_na &lt;- figure_3 %&gt;% 
   filter(!is.na(gun.house.prev.category))</code></pre>

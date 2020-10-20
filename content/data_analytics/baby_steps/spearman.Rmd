@@ -1,7 +1,7 @@
 ---
 title: "Just One Graph, How Hard Can It Be"
 author: "Ben Jaletzke"
-date: ""
+date: "2020-10-20"
 summary: "Yes, this 'project' is just a simple graph. The reason I am sharing it is simple: It was the first real encounter with R I've had, and it immediately showed me that I love and hate this language."
 output:
   html_document:
@@ -48,11 +48,10 @@ library(lubridate) #to handle dates
 ```
 
 ```{r}
-figure_3 <- read_csv(here::here("data", "CDC_Males.csv"))
+figure_3 <- read_csv(here::here("content/data_analytics/baby_steps/", "CDC_Males.csv"))
 
 adj_na <- figure_3 %>% 
   filter(!is.na(gun.house.prev.category))
-
 ```
 
 Try to guess which line caused my group and me the biggest headaches. Did you spot it? No? We spent what felt like years trying to figure out how to add the line "Spearman's correlation: 0.72" to the graph. Finally, late at night and not too long before the deadline, we decided to just add it as text. "Fine, we have been outsmarted, we cannot figure it out. There's surely a fancy method to get ggplot to show analysis output that we simply do not know yet."

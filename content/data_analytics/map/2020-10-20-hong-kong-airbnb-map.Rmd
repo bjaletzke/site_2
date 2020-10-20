@@ -28,7 +28,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Overview
 This map is a small excerpt from the data analytics project I worked on as part of my LBS group. For the analysis of AirBnB rentals in Hong Kong, I created a simple leaflet map showing the rental distributoion and a simple palette per district based on price. 
 
-```{r, warning = FALSE, echo = FALSE}
+```{r, warning = FALSE, include = FALSE}
 library(vroom)
 library(tidyverse)
 library(skimr)
@@ -93,7 +93,7 @@ hk_airbnb <- leaflet(hk_dist) %>%
   # setView(0,0,2) 
 ```
 
-## Map
+### Map
 
 ```{r, fig.width = 10}
 # Embedding in Frame to display the Widget within Blogdown

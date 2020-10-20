@@ -28,6 +28,9 @@ projects: []
 <script src="/rmarkdown-libs/widgetframe-binding/widgetframe.js"></script>
 
 
+<div id="overview" class="section level3">
+<h3>Overview</h3>
+<p>This map is a small excerpt from the data analytics project I worked on as part of my LBS group. For the analysis of AirBnB rentals in Hong Kong, I created a simple leaflet map showing the rental distributoion and a simple palette per district based on price.</p>
 <pre><code>## Registered S3 methods overwritten by &#39;readr&#39;:
 ##   method           from 
 ##   format.col_spec  vroom
@@ -73,8 +76,9 @@ projects: []
 ## use options(&quot;rgdal_show_exportToProj4_warnings&quot;=&quot;none&quot;) before loading rgdal.</code></pre>
 <pre><code>## GDAL version &gt;= 3.1.0 | setting mapviewOptions(fgb = TRUE)</code></pre>
 <pre><code>## Loading required package: htmlwidgets</code></pre>
-<div id="data-import" class="section level1">
-<h1>Data Import</h1>
+</div>
+<div id="data-import" class="section level2">
+<h2>Data Import</h2>
 <pre class="r"><code># Importing the HK Listings data from AirBnB
 hk_listings &lt;- vroom(&quot;http://data.insideairbnb.com/china/hk/hong-kong/2020-06-15/data/listings.csv.gz&quot;)</code></pre>
 <pre><code>## Rows: 11,187
@@ -94,8 +98,8 @@ hk_listings_clean &lt;- hk_listings %&gt;%
 
 # Converting price from character to number value for filtering in the map
 hk_listings_clean$price &lt;- parse_number(hk_listings_clean$price)</code></pre>
-<div id="shapefile" class="section level2">
-<h2>ShapeFile</h2>
+<div id="shapefile" class="section level3">
+<h3>ShapeFile</h3>
 <pre class="r"><code># Importing ShapeFile for Hong Kong, from https://opendata.esrichina.hk/datasets/eea8ff2f12b145f7b33c4eef4f045513_0
 hk_dist &lt;- readOGR(&quot;hk_dist_shp/HKDistrict18.shp&quot;)</code></pre>
 <pre><code>## OGR data source with driver: ESRI Shapefile 
@@ -103,9 +107,8 @@ hk_dist &lt;- readOGR(&quot;hk_dist_shp/HKDistrict18.shp&quot;)</code></pre>
 ## with 18 features
 ## It has 7 fields</code></pre>
 </div>
-</div>
-<div id="map" class="section level1">
-<h1>Map</h1>
+<div id="leaflet-code" class="section level3">
+<h3>Leaflet Code</h3>
 <pre class="r"><code># (My) R cannot deal with 11,000 + rows of data in leaflet with a shapefile, so I am using a random sample of the dataset to make the illustration
 hk_cut &lt;- hk_listings_clean %&gt;% 
   sample_n(1000)
@@ -134,10 +137,13 @@ hk_airbnb &lt;- leaflet(hk_dist) %&gt;%
                    clusterOptions = markerClusterOptions()
                    ) %&gt;% 
   addLegend(&quot;bottomright&quot;, pal = pal, values = &quot;&quot;, labels = c(&quot;0-199&quot;, &quot;200-499&quot;, &quot;500-799&quot;, &quot;800-15000&quot;, &quot;1500+&quot;), title = &quot;AirBnB Prices in District&quot;, opacity = 1)
-  # setView(0,0,2) 
-
-# Embedding in Frame to display the Widget within Blogdown
+  # setView(0,0,2) </code></pre>
+</div>
+</div>
+<div id="map" class="section level2">
+<h2>Map</h2>
+<pre class="r"><code># Embedding in Frame to display the Widget within Blogdown
 frameWidget(hk_airbnb, height = &#39;400&#39;)</code></pre>
 <div id="htmlwidget-1" style="width:100%;height:400px;" class="widgetframe html-widget"></div>
-<script type="application/json" data-for="htmlwidget-1">{"x":{"url":"/data_analytics/map/2020-10-20-hong-kong-airbnb-map_files/figure-html//widgets/widget_unnamed-chunk-4.html","options":{"xdomain":"*","allowfullscreen":false,"lazyload":false}},"evals":[],"jsHooks":[]}</script>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"url":"/data_analytics/map/2020-10-20-hong-kong-airbnb-map_files/figure-html//widgets/widget_unnamed-chunk-5.html","options":{"xdomain":"*","allowfullscreen":false,"lazyload":false}},"evals":[],"jsHooks":[]}</script>
 </div>

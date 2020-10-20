@@ -25,6 +25,9 @@ projects: []
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+### Overview
+This map is a small excerpt from the data analytics project I worked on as part of my LBS group. For the analysis of AirBnB rentals in Hong Kong, I created a simple leaflet map showing the rental distributoion and a simple palette per district based on price. 
+
 ```{r, warning = FALSE, echo = FALSE}
 library(vroom)
 library(tidyverse)
@@ -36,7 +39,7 @@ library(mapview)
 library(widgetframe)
 ```
 
-# Data Import
+## Data Import
 ```{r, warning = FALSE}
 # Importing the HK Listings data from AirBnB
 hk_listings <- vroom("http://data.insideairbnb.com/china/hk/hong-kong/2020-06-15/data/listings.csv.gz")
@@ -50,13 +53,13 @@ hk_listings_clean <- hk_listings %>%
 hk_listings_clean$price <- parse_number(hk_listings_clean$price)
 ```
 
-## ShapeFile
+### ShapeFile
 ```{r, warning = FALSE}
 # Importing ShapeFile for Hong Kong, from https://opendata.esrichina.hk/datasets/eea8ff2f12b145f7b33c4eef4f045513_0
 hk_dist <- readOGR("hk_dist_shp/HKDistrict18.shp")
 ```
 
-# Map
+### Leaflet Code
 
 ```{r, warning=FALSE}
 # (My) R cannot deal with 11,000 + rows of data in leaflet with a shapefile, so I am using a random sample of the dataset to make the illustration
@@ -88,7 +91,12 @@ hk_airbnb <- leaflet(hk_dist) %>%
                    ) %>% 
   addLegend("bottomright", pal = pal, values = "", labels = c("0-199", "200-499", "500-799", "800-15000", "1500+"), title = "AirBnB Prices in District", opacity = 1)
   # setView(0,0,2) 
+```
 
+## Map
+
+```{r, fig.width = 10}
 # Embedding in Frame to display the Widget within Blogdown
 frameWidget(hk_airbnb, height = '400')
 ```
+

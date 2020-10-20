@@ -25,7 +25,7 @@ projects: []
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, warnings = FALSE}
+```{r, warnings = FALSE, echo = FALSE}
 library(vroom)
 library(tidyverse)
 library(skimr)

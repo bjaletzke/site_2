@@ -25,7 +25,7 @@ projects: []
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, warnings = FALSE, echo = FALSE}
+```{r, warning = FALSE, echo = FALSE}
 library(vroom)
 library(tidyverse)
 library(skimr)
@@ -36,7 +36,7 @@ library(mapview)
 ```
 
 # Data Import
-```{r}
+```{r, warning = FALSE}
 # Importing the HK Listings data from AirBnB
 hk_listings <- vroom("http://data.insideairbnb.com/china/hk/hong-kong/2020-06-15/data/listings.csv.gz")
 
@@ -50,18 +50,17 @@ hk_listings_clean$price <- parse_number(hk_listings_clean$price)
 ```
 
 ## ShapeFile
-```{r, echo = FALSE}
+```{r, warning = FALSE}
 # Importing ShapeFile for Hong Kong, from https://opendata.esrichina.hk/datasets/eea8ff2f12b145f7b33c4eef4f045513_0
 hk_dist <- readOGR("hk_dist_shp/HKDistrict18.shp")
 ```
 
 # Map
-```{r}
+
+```{r, warning=FALSE}
 # (My) R cannot deal with 11,000 + rows of data in leaflet with a shapefile, so I am using a random sample of the dataset to make the illustration
 hk_cut <- hk_listings_clean %>% 
   sample_n(1000)
-
-hk_cut$price_quant <- cut(hk_cut$price, breaks = c(0, 295, 481, 798, 2000))
 
 # Factoring price according to the percentiles
 factpal <- colorFactor(topo.colors(5), hk_listings_clean$price_quant)
@@ -70,22 +69,12 @@ pal <-  colorBin(palette =
     domain = hk_cut$price, bins = c(0, 200, 500, 800, 15000))
 
 leaflet(hk_dist) %>% 
-  # Adding polygons from hk_dist to be able to group data by district
-  
-  # addMapPane("polygons", zIndex = 410) %>%  # Level 1: bottom
-  # 
-  # addMapPane("background_map", zIndex = 420) %>% 
-  
-  addProviderTiles(providers$Stamen.TonerLines,
-    options = pathOptions(pane = "background_map")) %>%
-  
+  addProviderTiles(providers$CartoDB.Positron) %>% 
   addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
     opacity = 0.1, fillOpacity = 0.1,
     fillColor = ~pal(hk_cut$price),
-    highlightOptions = highlightOptions(color = "white", weight = 2,
-      bringToFront = TRUE,
-    label = ~hk_cut$neighbourhood)) %>% 
-  
+    highlightOptions = highlightOptions(color = "red", weight = 2,
+      bringToFront = TRUE), label = ~hk_cut$neighbourhood_cleansed) %>% 
   addCircleMarkers(lng = ~hk_listings_clean$longitude, 
                    lat = ~hk_listings_clean$latitude, 
                    radius = 2, 
@@ -96,6 +85,5 @@ leaflet(hk_dist) %>%
                    stroke = 0.2, 
                    clusterOptions = markerClusterOptions()
                    ) %>% 
-  
   addLegend("bottomright", pal = pal, values = "", labels = c("0-199", "200-499", "500-799", "800-15000", "1500+"), title = "AirBnB Prices in District", opacity = 1)
 ```

@@ -25,7 +25,7 @@ projects: []
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, warnings = FALSE}
 library(vroom)
 library(tidyverse)
 library(skimr)
@@ -50,7 +50,7 @@ hk_listings_clean$price <- parse_number(hk_listings_clean$price)
 ```
 
 ## ShapeFile
-```{r}
+```{r, echo = FALSE}
 # Importing ShapeFile for Hong Kong, from https://opendata.esrichina.hk/datasets/eea8ff2f12b145f7b33c4eef4f045513_0
 hk_dist <- readOGR("hk_dist_shp/HKDistrict18.shp")
 ```

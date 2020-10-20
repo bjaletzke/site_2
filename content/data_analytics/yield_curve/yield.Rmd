@@ -185,7 +185,7 @@ recessions <- tibble(
 recessions
 ```
 
-```{r, fig.width = 100%}
+```{r, fig.width = 12}
 
 yield_spread <- yield_curve %>% 
   filter(maturity == "3m" | maturity  == "10y") %>% 

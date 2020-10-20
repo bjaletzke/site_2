@@ -1,0 +1,90 @@
+---
+title: "Just One Graph, How Hard Can It Be"
+author: "Ben Jaletzke"
+date: ""
+summary: "Yes, this 'project' is just a simple graph. The reason I am sharing it is simple: It was the first real encounter with R I've had, and it immediately showed me that I love and hate this language."
+output:
+  html_document:
+    theme: flatly
+    highlight: zenburn
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+---
+
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(lubridate)
+library(fivethirtyeight)
+library(here)
+library(skimr)
+library(janitor)
+library(vroom)
+library(tidyquant)
+library(rvest)    # scrape websites
+library(purrr)  
+library(lubridate) #to handle dates
+```
+
+```{r}
+figure_3 <- read_csv(here::here("data", "CDC_Males.csv"))
+
+adj_na <- figure_3 %>% 
+  filter(!is.na(gun.house.prev.category))
+
+```
+
+Try to guess which line caused my group and me the biggest headaches. Did you spot it? No? We spent what felt like years trying to figure out how to add the line "Spearman's correlation: 0.72" to the graph. Finally, late at night and not too long before the deadline, we decided to just add it as text. "Fine, we have been outsmarted, we cannot figure it out. There's surely a fancy method to get ggplot to show analysis output that we simply do not know yet."
+
+Imagine my surprise when, a few days after, I found the git repo of the researcher who orignially created this graph, and she, too, used geom_text(). I felt both incredible relief and frustration. Ultimately, isn't that what programming is all about?
+
+```{r}
+library(ggrepel)
+figure.3 <- ggplot(adj_na, aes(adjusted.suicide.White, adjusted.homicide.White)) + 
+  geom_point(aes(fill = gun.house.prev.category, size = average.pop.white), col = "black", pch = 21, alpha = 0.9) + #add the points sized by population
+  geom_text_repel(aes(label = ST), size = 4, min.segment.length = 1) + #add the labels _repel limits overlap
+  scale_fill_manual(values = c("#fef0d9", "#fdcc8a", "#fc8d59", "#d7301f")) + #orange colour ramp
+  ylab("White homicide rate (per 100,000 per year)") +
+  xlab("White suicide rate (per 100,000 per year)") + 
+  scale_y_continuous(limits = c(0, 5)) +
+  scale_x_continuous(limits = c(0, 30)) +
+  theme_bw() +
+  theme() + 
+  scale_size_area(breaks = c(200000, 500000, 1500000, 3000000, 7000000), 
+                  labels = c("200k", "500k", "1.5m", "3m", "7m"),
+                  max_size = 15) +
+  guides(fill = guide_legend(title = "Gun ownership", 
+                             override.aes = list(size = 5), order = 1), 
+         size = guide_legend(title = "White population"), order = 2) + 
+  geom_text(aes(x = 25, y = 0.2, 
+                label = paste0("Spearman's correlation: 0.72" #round(spearman.white$spearmans, 2)
+                               )), 
+            check_overlap = T)
+# Output
+figure.3
+```
+
+
+
+

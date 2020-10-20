@@ -22,7 +22,9 @@ See for yourself [here](https://unsplash.com/@benjaletzke)
 ## Chasing the Unicorn
 A few of us have set up a podcast on Venture Capital. 
 
-[Check out our Website, adn give it a listen](https://www.chasingtheunicorn.xyz)
+[Check out our Website](https://www.chasingtheunicorn.xyz)
+
+[or give us a listen](https://open.spotify.com/show/5wDsa7qSijMpOP4tzxCmLs?si=whQKHuF-TiqJHmT0h2nHkg)
 
 ## Watch me Fail at Coding
 - [GitHub](https://github.com/bjaletzke)

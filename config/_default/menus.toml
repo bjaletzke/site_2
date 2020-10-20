@@ -24,7 +24,7 @@
   weight = 60
 
 [[main]]
-  name = "Surprise"
+  name = "Click Me"
   url = "bears/"
   weight = 80
 

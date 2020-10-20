@@ -12,7 +12,6 @@ header:
   caption: ""
   image: ""
 ---
-# Bears
 Bears are stocky carnivores, omnivores, and sometimes even herbivores with a super bad rep thanks to well-documented cases of them wandering into populated areas and attacking, but in their own habitats they’re rather cute, solitary animals.
 As Wilderness ambassadors, bears are a barometer for the health of  forests and ecosystems. If bear populations are thriving, it’s more than likely their natural surroundings are, too.
 

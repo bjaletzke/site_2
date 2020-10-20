@@ -1,10 +1,25 @@
 ---
-title: "Map of AirBnB Rentals in Hong Kong"
-author: "Ben Jaletzke"
-date: "13/10/2020"
-abstract: "As part of a Group Project, I created a simple leaflet map of Hong Kong AirBnB rentals, using a ShapeFile for the 18 Districts of Hong Kong"
-output: html_document
+title: Hong Kong AirBnB Map
+author: Ben Jaletzke
+date: '2020-10-20'
+slug: hong-kong-airbnb-map
+categories:
+  - compsci
+tags:
+  - r
+  - data_analytics
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2020-10-20T13:21:18+01:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)

@@ -16,10 +16,13 @@ header:
 
 ## Photography
 I like to take photos of nature, and occasionally of people. Some of those who have looked at my photos even liked them. 
+
 See for yourself [here](https://unsplash.com/@benjaletzke)
 
 ## Chasing the Unicorn
-A few of us have set up a podcast on Venture Capital. I have set up its [website](https://www.chasingtheunicorn.xyz)
+A few of us have set up a podcast on Venture Capital. 
+
+[Check out our Website, adn give it a listen](https://www.chasingtheunicorn.xyz)
 
 ## Watch me Fail at Coding
 - [GitHub](https://github.com/bjaletzke)

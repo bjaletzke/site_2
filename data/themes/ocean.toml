@@ -18,3 +18,26 @@ menu_title = "#fff"
 # Home sections
 home_section_odd = "rgb(255, 255, 255)"
 home_section_even = "rgb(247, 247, 247)"
+
+-- Custom save
+# Theme metadata
+name = "custom"
+
+# Is theme light or dark?
+light = true
+
+# Primary
+primary = "#0059B2"
+primary_light = "#0059B2"
+primary_dark = "#0059B2"
+
+# Menu
+menu_primary = "#494949"
+menu_text = "#fff"
+menu_text_active = "#27A5DD"
+menu_title = "#fff"
+
+# Backgrounds
+background = "#c6c6c6"
+home_section_odd = "#c6c6c6"
+home_section_even = "#979797"

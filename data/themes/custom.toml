@@ -19,3 +19,7 @@ menu_title = "#fff"
 background = "#c6c6c6"
 home_section_odd = "#c6c6c6"
 home_section_even = "#979797"
+
+h1 = "#0057B7"
+
+navbar_main = "#326cac"
